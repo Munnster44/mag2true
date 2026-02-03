@@ -1,0 +1,960 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#0b2a3a" />
+  <title>True ⇄ Magnetic (WMM-2025) — Offline</title>
+  <link rel="manifest" href="manifest.json">
+
+  <style>
+    :root { --bg:#071c26; --card:#0c2a3a; --ink:#e9f3f8; --muted:#a8c0cc; --accent:#4ad1ff; --warn:#ffcc66; }
+    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background:linear-gradient(180deg,#04131a, var(--bg)); color:var(--ink); }
+    header { padding:16px 16px 8px; }
+    .topbar { display:flex; gap:12px; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; }
+    h1 { margin:0 0 6px; font-size:18px; }
+    .sub { color:var(--muted); font-size:13px; line-height:1.35; }
+    .wrap { padding: 12px 16px 22px; display:grid; gap:12px; max-width:980px; margin:0 auto; }
+    .card { background:rgba(12,42,58,.92); border:1px solid rgba(74,209,255,.18); border-radius:14px; padding:12px; box-shadow:0 10px 24px rgba(0,0,0,.25); }
+    .row { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+    @media (max-width:820px){ .row { grid-template-columns:1fr; } }
+    label { display:block; font-size:12px; color:var(--muted); margin:0 0 6px; }
+    input, select { width:100%; box-sizing:border-box; padding:10px 10px; border-radius:10px; border:1px solid rgba(255,255,255,.12); background:#071b25; color:var(--ink); }
+    input[type="file"] { padding:8px; }
+    .btns { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+    button { cursor:pointer; border-radius:10px; border:1px solid rgba(74,209,255,.28); background:rgba(74,209,255,.12); color:var(--ink); padding:10px 12px; font-weight:600; }
+    button:hover { background:rgba(74,209,255,.18); }
+    button.secondary { border-color: rgba(255,255,255,.18); background: rgba(255,255,255,.08); }
+    button.danger { border-color: rgba(255,204,102,.35); background: rgba(255,204,102,.10); }
+    .out { display:grid; gap:8px; }
+    .big { font-size:22px; font-weight:800; letter-spacing:.2px; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .note { color:var(--muted); font-size:12px; line-height:1.35; }
+    .pill { display:inline-block; padding:4px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.14); font-size:12px; color:var(--muted); }
+    .warn { color: var(--warn); }
+    .k { color: var(--accent); font-weight:700; }
+    .grid15 { display:grid; grid-template-columns: repeat(6, 1fr); gap:8px; }
+    @media (max-width:980px){ .grid15 { grid-template-columns: repeat(4, 1fr); } }
+    @media (max-width:620px){ .grid15 { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width:420px){ .grid15 { grid-template-columns: repeat(2, 1fr); } }
+    .cell label { margin:0 0 4px; font-size:11px; }
+    .cell input { padding:9px; }
+    .hr { height:1px; background: rgba(255,255,255,.10); margin:12px 0; }
+    footer { padding: 10px 16px 18px; color: var(--muted); font-size:12px; text-align:center; }
+
+    /* PRINT STYLES: show only the print card */
+    @media print {
+      body { background:#fff !important; color:#000 !important; }
+      header, .wrap > .card:not(#printCard), footer { display:none !important; }
+      #printCard { display:block !important; background:#fff !important; color:#000 !important; border:none !important; box-shadow:none !important; }
+      #printCard h2, #printCard p, #printCard table { color:#000 !important; }
+      #printCard .muted { color:#333 !important; }
+      #printCard table { width:100%; border-collapse:collapse; }
+      #printCard th, #printCard td { border:1px solid #000; padding:6px; text-align:center; font-size:12px; }
+      #printCard .mono { font-family: ui-monospace, Menlo, Consolas, monospace; }
+    }
+  </style>
+</head>
+
+<body>
+<header>
+  <div class="topbar">
+    <div>
+      <h1 id="t_app_title">True ⇄ Magnetic Calculator (Offline)</h1>
+      <div class="sub" id="t_app_sub">
+        Offline declination uses <span class="k">WMM-2025</span>. Deviation is your boat’s compass card (0–345° every 15°) with interpolation.
+      </div>
+    </div>
+    <div style="min-width:190px">
+      <label id="t_lang_label" style="margin-bottom:6px;">Language</label>
+      <select id="langSel">
+        <option value="en">English</option>
+        <option value="fr">Français (Canada)</option>
+      </select>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- LOCATION / MODEL -->
+  <div class="card">
+    <div class="row">
+      <div>
+        <label id="t_lat">Latitude (°) — e.g. 43.0896</label>
+        <input id="lat" inputmode="decimal" placeholder="Latitude" value="43.0896">
+      </div>
+      <div>
+        <label id="t_lon">Longitude (°) — e.g. -79.0849</label>
+        <input id="lon" inputmode="decimal" placeholder="Longitude" value="-79.0849">
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:10px">
+      <div>
+        <label id="t_alt">Altitude (meters) (optional)</label>
+        <input id="alt" inputmode="decimal" placeholder="0" value="0">
+      </div>
+      <div>
+        <label id="t_date">Date (UTC) (defaults to today)</label>
+        <input id="date" type="date">
+      </div>
+    </div>
+
+    <div class="btns" style="margin-top:10px">
+      <button id="gpsBtn">Use my GPS</button>
+      <button class="secondary" id="calcBtn">Calculate Declination</button>
+      <span class="pill" id="modelPill">Model: WMM-2025 (built-in)</span>
+    </div>
+
+    <div class="note" style="margin-top:8px" id="t_sign">
+      Sign convention: <b>East declination = +</b>, <b>West declination = −</b>.
+      Conversions:
+      <span class="mono">Magnetic = True − Declination</span>,
+      <span class="mono">True = Magnetic + Declination</span>.
+    </div>
+  </div>
+
+  <!-- CONVERSION -->
+  <div class="card">
+    <div class="row">
+      <div>
+        <label id="t_true">True heading/course (°T) (optional)</label>
+        <input id="trueHdg" inputmode="decimal" placeholder="e.g. 120">
+      </div>
+      <div>
+        <label id="t_comp">Compass heading/course (°C) (optional)</label>
+        <input id="compHdg" inputmode="decimal" placeholder="e.g. 118">
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:10px">
+      <div>
+        <label id="t_mag">Magnetic heading/course (°M) (optional)</label>
+        <input id="magHdg" inputmode="decimal" placeholder="e.g. 115">
+      </div>
+      <div>
+        <label id="t_devapplied">Deviation applied from table</label>
+        <input id="devApplied" disabled value="—">
+      </div>
+    </div>
+
+    <div class="btns" style="margin-top:10px">
+      <button class="secondary" id="convertBtn">Convert (uses deviation table)</button>
+      <button class="secondary" id="swapBtn">Swap T ↔ M</button>
+      <button class="secondary" id="clearBtn">Clear headings</button>
+    </div>
+
+    <div class="out" style="margin-top:12px">
+      <div class="big" id="declOut">Declination: —</div>
+      <div id="detailOut" class="note"></div>
+      <div id="convOut" class="note"></div>
+    </div>
+  </div>
+
+  <!-- DEVIATION TABLE -->
+  <div class="card">
+    <div class="row">
+      <div>
+        <label id="t_devname">Deviation profile name</label>
+        <input id="devProfileName" placeholder="e.g. Ship's Compass (Winter 2026)" value="Ship's Compass">
+      </div>
+      <div>
+        <label id="t_actions">Profile actions</label>
+        <div class="btns">
+          <button class="secondary" id="devSaveBtn">Save Profile</button>
+          <button class="secondary" id="devLoadBtn">Load Profile</button>
+          <button class="secondary" id="devNewBtn">New / Clear Table</button>
+          <button class="secondary" id="printDevBtn">Print Deviation Card</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:10px">
+      <div>
+        <label id="t_lastswung">“Last swung” date / notes (optional)</label>
+        <input id="devNotes" placeholder="e.g. Swung after radar install, Jan 20 2026">
+      </div>
+      <div>
+        <label id="t_impexp">Import / Export deviation profiles</label>
+        <div class="btns">
+          <button class="secondary" id="devExportBtn">Export JSON</button>
+          <input id="devImportFile" type="file" accept=".json,application/json">
+        </div>
+      </div>
+    </div>
+
+    <div class="hr"></div>
+
+    <div class="note" id="t_devhelp">
+      Enter deviation in degrees with sign: <b>East = +</b>, <b>West = −</b>. Example: +2.0 means 2°E.
+      Interpolation is linear between the nearest 15° entries, wrapping around 360°.
+    </div>
+
+    <div style="margin-top:10px" class="grid15" id="devGrid"></div>
+
+    <div class="btns" style="margin-top:12px">
+      <button class="secondary" id="fillZeroBtn">Fill blanks with 0</button>
+      <button class="secondary" id="roundBtn">Round all to 0.1°</button>
+    </div>
+  </div>
+
+  <!-- MODEL UPDATE -->
+  <div class="card">
+    <div class="row">
+      <div>
+        <label id="t_upmodel">Update magnetic model (offline) — import a newer WMM JSON</label>
+        <input id="modelFile" type="file" accept=".json,application/json">
+        <div class="note" style="margin-top:8px" id="t_upmodel_note">
+          This stores the imported model in your browser (localStorage). No internet required.
+        </div>
+      </div>
+      <div>
+        <label id="t_modelctrl">Model controls</label>
+        <div class="btns">
+          <button class="secondary" id="showModelBtn">Show model info</button>
+          <button class="danger" id="resetModelBtn">Reset to built-in WMM-2025</button>
+        </div>
+        <div id="modelInfo" class="note" style="margin-top:8px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRINT CARD (only visible when printing) -->
+  <div class="card" id="printCard" style="display:none;">
+    <h2 id="p_title">Deviation Card</h2>
+    <p class="muted" id="p_sub"></p>
+    <p class="muted"><span class="mono" id="p_profile"></span></p>
+    <p class="muted" id="p_notes"></p>
+
+    <table id="p_table">
+      <thead>
+        <tr>
+          <th id="p_hdg">Heading (°M)</th>
+          <th id="p_dev">Deviation (°)</th>
+          <th id="p_ew">E/W</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <p class="muted" style="margin-top:10px" id="p_formula"></p>
+    <p class="muted" id="p_copyright"></p>
+  </div>
+
+  <!-- COPYRIGHT -->
+  <div class="card">
+    <div class="note" id="t_copyright_block">
+      <b>Copyright & License Notice</b><br>
+      © <span id="yr"></span> Glen Carruthers. All rights reserved.<br>
+      This tool provides navigational calculations for convenience only. Verify results against official sources and your vessel’s deviation card.
+    </div>
+  </div>
+
+</div>
+
+<footer id="footerTxt">
+  v1.1b — Offline True/Magnetic/Compass calculator (WMM-2025). © <span id="yr2"></span> Glen Carruthers. All rights reserved.
+</footer>
+
+<script>
+/* =========================================================
+   v1.1b (stable v1.1 + Print + EN/FR)
+   © 2026 Glen Carruthers. All rights reserved.
+   ========================================================= */
+
+// ---------- Built-in WMM-2025 model ----------
+const BUILTIN_WMM_2025 = JSON.parse(`{"main_field_coeff_g":[0,-29351.8,-1410.8,-2556.6,2951.1,1649.3,1361,-2404.1,1243.8,453.6,895,799.5,55.7,-281.1,12.1,-233.2,368.9,187.2,-138.7,-142,20.9,64.4,63.8,76.9,-115.7,-40.9,14.9,-60.7,79.5,-77,-8.8,59.3,15.8,2.5,-11.1,14.2,23.2,10.8,-17.5,2,-21.7,16.9,15,-16.8,0.9,4.6,7.8,3,-0.2,-2.5,-13.1,2.4,8.6,-8.7,-12.9,-1.3,-6.4,0.2,2,-1,-0.6,-0.9,1.5,0.9,-2.7,-3.9,2.9,-1.5,-2.5,2.4,-0.6,-0.1,-0.6,-0.1,1.1,-1,-0.2,2.6,-2,-0.2,0.3,1.2,-1.3,0.6,0.6,0.5,-0.1,-0.4,-0.2,-1.3,-0.7],"main_field_coeff_h":[0,0,4545.4,0,-3133.6,-815.1,0,-56.6,237.5,-549.5,0,278.6,-133.9,212,-375.6,0,45.4,220.2,-122.9,43,106.1,0,-18.4,16.8,48.8,-59.8,10.9,72.7,0,-48.9,-14.4,-1,23.4,-7.4,-25.1,-2.3,0,7.1,-12.6,11.4,-9.7,12.7,0.7,-5.2,3.9,0,-24.8,12.2,8.3,-3.3,-5.2,7.2,-0.6,0.8,10,0,3.3,0,2.4,5.3,-9.1,0.4,-4.2,-3.8,0.9,-9.1,0,0,2.9,-0.6,0.2,0.5,-0.3,-1.2,-1.7,-2.9,-1.8,-2.3,0,-1.3,0.7,1,-1.4,0,0.6,-0.1,0.8,0.1,-1,0.1,0.2],"secular_var_coeff_g":[0,12,9.7,-11.6,-5.2,-8,-1.3,-4.2,0.4,-15.6,-1.6,-2.4,-6,5.6,-7,0.6,1.4,0,0.6,2.2,0.9,-0.2,-0.4,0.9,1.2,-0.9,0.3,0.9,0,-0.1,-0.1,0.5,-0.1,-0.8,-0.8,0.8,-0.1,0.2,0,0.5,-0.1,0.3,0.2,0,0.2,0,-0.1,0.1,0.3,-0.3,0,0.3,-0.1,0.1,-0.1,0.1,0,0.1,0.1,0,-0.3,0,-0.1,-0.1,0,0,0,0,0,0,0,-0.1,0,0,-0.1,-0.1,-0.1,-0.1,0,0,0,0,0,0,0.1,0,0,0,-0.1,0,-0.1],"secular_var_coeff_h":[0,0,-21.5,0,-27.7,-12.1,0,4,-0.3,-4.1,0,-1.1,4.1,1.6,-4.4,0,-0.5,2.2,0.4,1.7,1.9,0,0.3,-1.6,-0.4,0.9,0.7,0.9,0,0.6,0.5,-0.8,0,-1,0.6,-0.2,0,-0.2,0.5,-0.4,0.4,-0.5,-0.6,0.3,0.2,0,-0.3,0.3,-0.3,0.3,0.2,-0.1,-0.2,0.4,0.1,0,0,0,-0.2,0.1,-0.1,0.1,0,-0.1,0.2,0,0,0,0.1,0,0.1,0,0,0.1,0,0,0,0,0,0,0,-0.1,0.1,0,0,0,0,0,0,0,0,-0.1],"n_max":12,"n_max_sec_var":12,"epoch":2025,"name":"WMM-2025","start_date":"2024-11-13T03:00:00.000Z","end_date":"2029-11-13T03:00:00.000Z"}`);
+
+// ---------- Storage keys ----------
+const LS_MODEL = "truemag_wmm_model_json_v1";
+const LS_DEV_PROFILES = "truemag_dev_profiles_v1";
+const LS_DEV_LAST = "truemag_dev_last_profile_v1";
+const LS_LANG = "truemag_lang_v1";
+
+// ---------- Helpers ----------
+const deg2rad = d => d * Math.PI / 180;
+const rad2deg = r => r * 180 / Math.PI;
+const $ = id => document.getElementById(id);
+function norm360(x){ let a = x % 360; if (a < 0) a += 360; return a; }
+function parseNum(v){ const n = parseFloat(String(v).trim()); return Number.isFinite(n) ? n : null; }
+
+// ---------- Language pack (simple + safe) ----------
+const I18N = {
+  en: {
+    app_title: "True ⇄ Magnetic Calculator (Offline)",
+    app_sub: "Offline declination uses WMM-2025. Deviation is your boat’s compass card (0–345° every 15°) with interpolation.",
+    lang_label: "Language",
+    lat: "Latitude (°) — e.g. 43.0896",
+    lon: "Longitude (°) — e.g. -79.0849",
+    alt: "Altitude (meters) (optional)",
+    date: "Date (UTC) (defaults to today)",
+    gps: "Use my GPS",
+    calc: "Calculate Declination",
+    true: "True heading/course (°T) (optional)",
+    comp: "Compass heading/course (°C) (optional)",
+    mag: "Magnetic heading/course (°M) (optional)",
+    devapplied: "Deviation applied from table",
+    convert: "Convert (uses deviation table)",
+    swap: "Swap T ↔ M",
+    clear: "Clear headings",
+    devname: "Deviation profile name",
+    actions: "Profile actions",
+    save: "Save Profile",
+    load: "Load Profile",
+    new: "New / Clear Table",
+    print: "Print Deviation Card",
+    lastswung: "“Last swung” date / notes (optional)",
+    impexp: "Import / Export deviation profiles",
+    export: "Export JSON",
+    devhelp: "Enter deviation in degrees with sign: East = +, West = −. Example: +2.0 means 2°E. Interpolation is linear between the nearest 15° entries, wrapping around 360°.",
+    fill0: "Fill blanks with 0",
+    round: "Round all to 0.1°",
+    upmodel: "Update magnetic model (offline) — import a newer WMM JSON",
+    upmodel_note: "This stores the imported model in your browser (localStorage). No internet required.",
+    modelctrl: "Model controls",
+    showmodel: "Show model info",
+    resetmodel: "Reset to built-in WMM-2025",
+    sign_html: 'Sign convention: <b>East declination = +</b>, <b>West declination = −</b>. Conversions: <span class="mono">Magnetic = True − Declination</span>, <span class="mono">True = Magnetic + Declination</span>.',
+    copyright_html: "<b>Copyright & License Notice</b><br>© {Y} Glen Carruthers. All rights reserved.<br>This tool provides navigational calculations for convenience only. Verify results against official sources and your vessel’s deviation card.",
+    p_title: "Deviation Card",
+    p_sub: "Compass deviation card (15° increments). East = +, West = −. (Blank entries print as 0.0.)",
+    p_hdg: "Heading (°M)",
+    p_dev: "Deviation (°)",
+    p_ew: "E/W",
+    p_formula: "Formula: Compass = Magnetic − Deviation (E positive). Magnetic = Compass + Deviation.",
+    model_reset_done: "Reset complete (back to built-in WMM-2025)."
+  },
+  fr: {
+    app_title: "Calculateur Vrai ⇄ Magnétique (hors ligne)",
+    app_sub: "La déclinaison hors ligne utilise WMM-2025. La déviation provient de la carte de compas (0–345° par 15°) avec interpolation.",
+    lang_label: "Langue",
+    lat: "Latitude (°) — ex. 43,0896",
+    lon: "Longitude (°) — ex. -79,0849",
+    alt: "Altitude (mètres) (facultatif)",
+    date: "Date (UTC) (par défaut : aujourd’hui)",
+    gps: "Utiliser mon GPS",
+    calc: "Calculer la déclinaison",
+    true: "Cap/route vrai (°V) (facultatif)",
+    comp: "Cap/route compas (°C) (facultatif)",
+    mag: "Cap/route magnétique (°M) (facultatif)",
+    devapplied: "Déviation appliquée (table)",
+    convert: "Convertir (utilise la table)",
+    swap: "Permuter V ↔ M",
+    clear: "Effacer les caps",
+    devname: "Nom du profil de déviation",
+    actions: "Actions du profil",
+    save: "Enregistrer",
+    load: "Charger",
+    new: "Nouveau / Effacer la table",
+    print: "Imprimer la carte",
+    lastswung: "Date/notes “mise au compas” (facultatif)",
+    impexp: "Importer / Exporter des profils",
+    export: "Exporter JSON",
+    devhelp: "Saisir la déviation en degrés avec signe : Est = +, Ouest = −. Ex. +2,0 = 2°E. Interpolation linéaire entre les valeurs à 15°, avec bouclage à 360°.",
+    fill0: "Remplir les vides avec 0",
+    round: "Arrondir à 0,1°",
+    upmodel: "Mettre à jour le modèle magnétique (hors ligne) — importer un JSON WMM",
+    upmodel_note: "Le modèle importé est stocké dans le navigateur (localStorage). Aucun Internet requis.",
+    modelctrl: "Contrôles du modèle",
+    showmodel: "Afficher les infos",
+    resetmodel: "Réinitialiser (WMM-2025 intégré)",
+    sign_html: 'Convention : <b>Est = +</b>, <b>Ouest = −</b>. Conversions : <span class="mono">Magnétique = Vrai − Déclinaison</span>, <span class="mono">Vrai = Magnétique + Déclinaison</span>.',
+    copyright_html: "<b>Avis de droit d’auteur</b><br>© {Y} Glen Carruthers. Tous droits réservés.<br>Outil fourni à titre indicatif. Vérifiez avec des sources officielles et votre carte de déviation.",
+    p_title: "Carte de déviation",
+    p_sub: "Carte de déviation (pas de 15°). Est = +, Ouest = −. (Cases vides imprimées à 0,0.)",
+    p_hdg: "Cap (°M)",
+    p_dev: "Déviation (°)",
+    p_ew: "E/O",
+    p_formula: "Formule : Compas = Magnétique − Déviation (Est positif). Magnétique = Compas + Déviation.",
+    model_reset_done: "Réinitialisation terminée (WMM-2025 intégré)."
+  }
+};
+
+let LANG = "en";
+function t(key){
+  return (I18N[LANG] && I18N[LANG][key]) ? I18N[LANG][key] : I18N.en[key] || key;
+}
+function applyLang(){
+  document.documentElement.lang = (LANG==="fr") ? "fr-CA" : "en";
+  $("t_app_title").textContent = t("app_title");
+  $("t_app_sub").innerHTML = t("app_sub").replace("WMM-2025", '<span class="k">WMM-2025</span>');
+  $("t_lang_label").textContent = t("lang_label");
+  $("t_lat").textContent = t("lat");
+  $("t_lon").textContent = t("lon");
+  $("t_alt").textContent = t("alt");
+  $("t_date").textContent = t("date");
+  $("gpsBtn").textContent = t("gps");
+  $("calcBtn").textContent = t("calc");
+  $("t_true").textContent = t("true");
+  $("t_comp").textContent = t("comp");
+  $("t_mag").textContent = t("mag");
+  $("t_devapplied").textContent = t("devapplied");
+  $("convertBtn").textContent = t("convert");
+  $("swapBtn").textContent = t("swap");
+  $("clearBtn").textContent = t("clear");
+  $("t_devname").textContent = t("devname");
+  $("t_actions").textContent = t("actions");
+  $("devSaveBtn").textContent = t("save");
+  $("devLoadBtn").textContent = t("load");
+  $("devNewBtn").textContent = t("new");
+  $("printDevBtn").textContent = t("print");
+  $("t_lastswung").textContent = t("lastswung");
+  $("t_impexp").textContent = t("impexp");
+  $("devExportBtn").textContent = t("export");
+  $("t_devhelp").textContent = t("devhelp");
+  $("fillZeroBtn").textContent = t("fill0");
+  $("roundBtn").textContent = t("round");
+  $("t_upmodel").textContent = t("upmodel");
+  $("t_upmodel_note").textContent = t("upmodel_note");
+  $("t_modelctrl").textContent = t("modelctrl");
+  $("showModelBtn").textContent = t("showmodel");
+  $("resetModelBtn").textContent = t("resetmodel");
+  $("t_sign").innerHTML = t("sign_html");
+
+  const year = new Date().getFullYear();
+  $("t_copyright_block").innerHTML = t("copyright_html").replace("{Y}", year);
+  $("footerTxt").innerHTML = `v1.1b — Offline True/Magnetic/Compass calculator (WMM-2025). © <span id="yr2">${year}</span> Glen Carruthers. All rights reserved.`;
+
+  // print card labels
+  $("p_title").textContent = t("p_title");
+  $("p_sub").textContent = t("p_sub");
+  $("p_hdg").textContent = t("p_hdg");
+  $("p_dev").textContent = t("p_dev");
+  $("p_ew").textContent = t("p_ew");
+  $("p_formula").textContent = t("p_formula");
+  $("p_copyright").textContent = `© ${year} Glen Carruthers. All rights reserved.`;
+}
+
+// ---------- Year placeholders ----------
+(function setYear(){
+  const y = new Date().getFullYear();
+  $("yr").textContent = y;
+  $("yr2").textContent = y;
+})();
+
+// ---------- WMM model storage ----------
+function loadModel(){
+  try{
+    const s = localStorage.getItem(LS_MODEL);
+    if(!s) return { model: BUILTIN_WMM_2025, source:"built-in" };
+    return { model: JSON.parse(s), source:"custom" };
+  }catch{
+    return { model: BUILTIN_WMM_2025, source:"built-in" };
+  }
+}
+function saveModel(obj){ localStorage.setItem(LS_MODEL, JSON.stringify(obj)); }
+function resetModel(){ localStorage.removeItem(LS_MODEL); }
+
+// ---------- WGS84 / WMM ----------
+function makeEllipsoid(){
+  const a = 6378.137, b = 6356.7523142, re = 6371.2;
+  const epssq = (a*a - b*b)/(a*a);
+  return { a,b,re,epssq };
+}
+function geodeticToSpherical(latDeg, lonDeg, heightMeters, ell){
+  const h_km = (heightMeters||0)/1000.0;
+  const sinlat = Math.sin(deg2rad(latDeg));
+  const coslat = Math.cos(deg2rad(latDeg));
+  const rc = ell.a / Math.sqrt(1 - ell.epssq * sinlat*sinlat);
+  const xp = (rc + h_km) * coslat;
+  const zp = (rc*(1-ell.epssq) + h_km) * sinlat;
+  const r = Math.sqrt(xp*xp + zp*zp);
+  const phig = rad2deg(Math.asin(zp/r));
+  return { r, phig, lambda: lonDeg };
+}
+function harmonicVariables(sph, ell, nmax){
+  const cosl = Math.cos(deg2rad(sph.lambda));
+  const sinl = Math.sin(deg2rad(sph.lambda));
+  const cos_m = [1.0, cosl];
+  const sin_m = [0.0, sinl];
+  const rr = (ell.re / sph.r);
+  const rrp = [ rr*rr ];
+  for(let n=1;n<=nmax;n++) rrp[n]=rrp[n-1]*rr;
+  for(let m=2;m<=nmax;m++){
+    cos_m[m]=cos_m[m-1]*cosl - sin_m[m-1]*sinl;
+    sin_m[m]=cos_m[m-1]*sinl + sin_m[m-1]*cosl;
+  }
+  return { relative_radius_power: rrp, cos_mlambda: cos_m, sin_mlambda: sin_m };
+}
+function legendrePcupLow(sin_phi, nmax){
+  const x = sin_phi;
+  const z = Math.sqrt((1-x)*(1+x));
+  const pcup=[1.0], dpcup=[0.0];
+
+  for(let n=1;n<=nmax;n++){
+    for(let m=0;m<=n;m++){
+      const i = n*(n+1)/2 + m;
+      if(n===m){
+        const i1=(n-1)*n/2 + (m-1);
+        pcup[i]=z*pcup[i1];
+        dpcup[i]=z*dpcup[i1] + x*pcup[i1];
+      } else if(n===1 && m===0){
+        const i1=(n-1)*n/2 + m;
+        pcup[i]=x*pcup[i1];
+        dpcup[i]=x*dpcup[i1] - z*pcup[i1];
+      } else if(n>1 && n!==m){
+        const i1=(n-2)*(n-1)/2 + m;
+        const i2=(n-1)*n/2 + m;
+        if(m>n-2){
+          pcup[i]=x*pcup[i2];
+          dpcup[i]=x*dpcup[i2] - z*pcup[i2];
+        } else {
+          const k=((n-1)*(n-1)-m*m)/((2*n-1)*(2*n-3));
+          pcup[i]=x*pcup[i2] - k*pcup[i1];
+          dpcup[i]=x*dpcup[i2] - z*pcup[i2] - k*dpcup[i1];
+        }
+      }
+    }
+  }
+
+  const sch=[1.0];
+  for(let n=1;n<=nmax;n++){
+    let i=n*(n+1)/2;
+    let i1=(n-1)*n/2;
+    sch[i]=sch[i1]*(2*n-1)/n;
+    for(let m=1;m<=n;m++){
+      i=n*(n+1)/2+m;
+      i1=n*(n+1)/2+(m-1);
+      sch[i]=sch[i1]*Math.sqrt(((n-m+1)*(m===1?2:1))/(n+m));
+    }
+  }
+  for(let n=1;n<=nmax;n++){
+    for(let m=0;m<=n;m++){
+      const i=n*(n+1)/2+m;
+      pcup[i]*=sch[i];
+      dpcup[i]*=-sch[i];
+    }
+  }
+  return { pcup, dpcup };
+}
+function timedModel(base, dateUtc){
+  const year_int = dateUtc.getUTCFullYear();
+  const frac = (dateUtc.valueOf() - Date.UTC(year_int)) / (1000*3600*24*365);
+  const year = year_int + frac;
+  const dyear = year - base.epoch;
+
+  const nmax = base.n_max;
+  const nmaxsv = base.n_max_sec_var;
+  const b = (nmaxsv*(nmaxsv+1))/2 + nmaxsv;
+
+  const g=base.main_field_coeff_g.slice();
+  const h=base.main_field_coeff_h.slice();
+  for(let n=1;n<=nmax;n++){
+    for(let m=0;m<=n;m++){
+      const i=n*(n+1)/2+m;
+      if(i<=b){
+        g[i]=g[i] + dyear*(base.secular_var_coeff_g[i]||0);
+        h[i]=h[i] + dyear*(base.secular_var_coeff_h[i]||0);
+      }
+    }
+  }
+  return { ...base, main_field_coeff_g:g, main_field_coeff_h:h };
+}
+function magneticVectorAt(model, latDeg, lonDeg, altMeters){
+  const ell=makeEllipsoid();
+  const sph=geodeticToSpherical(latDeg, lonDeg, altMeters, ell);
+  const leg=legendrePcupLow(Math.sin(deg2rad(sph.phig)), model.n_max);
+  const hv=harmonicVariables(sph, ell, model.n_max);
+  const g=model.main_field_coeff_g, h=model.main_field_coeff_h;
+
+  let bx=0, by=0, bz=0;
+  for(let n=1;n<=model.n_max;n++){
+    for(let m=0;m<=n;m++){
+      const i=n*(n+1)/2+m;
+      const term=(g[i]*hv.cos_mlambda[m] + h[i]*hv.sin_mlambda[m]);
+      bz -= hv.relative_radius_power[n]*term*(n+1)*leg.pcup[i];
+      by += hv.relative_radius_power[n]*(g[i]*hv.sin_mlambda[m]-h[i]*hv.cos_mlambda[m])*m*leg.pcup[i];
+      bx -= hv.relative_radius_power[n]*term*leg.dpcup[i];
+    }
+  }
+  const cosphi=Math.cos(deg2rad(sph.phig));
+  by = (Math.abs(cosphi)>1e-10) ? (by/cosphi) : 0;
+
+  const psi=deg2rad(sph.phig - latDeg);
+  const bz_geo=bx*Math.sin(psi)+bz*Math.cos(psi);
+  const bx_geo=bx*Math.cos(psi)-bz*Math.sin(psi);
+  return { bx:bx_geo, by:by, bz:bz_geo };
+}
+function magneticElements(vec){
+  const bx=vec.bx, by=vec.by, bz=vec.bz;
+  const h=Math.sqrt(bx*bx+by*by);
+  const decl=rad2deg(Math.atan2(by,bx));
+  const incl=rad2deg(Math.atan2(bz,h));
+  return { decl, incl };
+}
+
+// ---------- UI state ----------
+const latEl=$("lat"), lonEl=$("lon"), altEl=$("alt"), dateEl=$("date");
+const declOut=$("declOut"), detailOut=$("detailOut"), convOut=$("convOut"), modelPill=$("modelPill");
+let currentDecl=null;
+
+// default date
+(function setTodayDefault(){
+  const now=new Date();
+  const yyyy=now.getUTCFullYear();
+  const mm=String(now.getUTCMonth()+1).padStart(2,"0");
+  const dd=String(now.getUTCDate()).padStart(2,"0");
+  dateEl.value=`${yyyy}-${mm}-${dd}`;
+})();
+
+function updateModelPill(){
+  const {model, source}=loadModel();
+  const start=new Date(model.start_date), end=new Date(model.end_date);
+  modelPill.textContent = `Model: ${model.name||"WMM"} (${source}) • valid ${start.toISOString().slice(0,10)} to ${end.toISOString().slice(0,10)}`;
+}
+function readCoreInputs(){
+  const lat=parseNum(latEl.value), lon=parseNum(lonEl.value), alt=parseNum(altEl.value)||0;
+  if(lat===null||lon===null) throw new Error("Please enter valid latitude and longitude.");
+  if(lat<-90||lat>90) throw new Error("Latitude must be between -90 and +90.");
+  if(lon<-180||lon>180) throw new Error("Longitude must be between -180 and +180.");
+  const d = dateEl.value ? new Date(dateEl.value+"T00:00:00Z") : new Date();
+  if(isNaN(d.valueOf())) throw new Error("Invalid date.");
+  return { lat, lon, alt, dateUtc:d };
+}
+function calcDeclination(){
+  const {model}=loadModel();
+  const {lat,lon,alt,dateUtc}=readCoreInputs();
+  const tm=timedModel(model, dateUtc);
+  const vec=magneticVectorAt(tm, lat, lon, alt);
+  const el=magneticElements(vec);
+  currentDecl=el.decl;
+
+  const ew = currentDecl>=0 ? "E" : (LANG==="fr" ? "O" : "W");
+  const label = (LANG==="fr") ? "Déclinaison: " : "Declination: ";
+  declOut.textContent = `${label}${Math.abs(currentDecl).toFixed(1)}° ${ew} (${currentDecl.toFixed(1)}° signed)`;
+  detailOut.innerHTML =
+    `Date (UTC): <span class="mono">${dateUtc.toISOString().slice(0,10)}</span> • ` +
+    `Lat/Lon: <span class="mono">${lat.toFixed(5)}, ${lon.toFixed(5)}</span> • ` +
+    `Alt: <span class="mono">${alt.toFixed(0)} m</span> • ` +
+    `Inclination: <span class="mono">${el.incl.toFixed(1)}°</span>`;
+  convOut.textContent="";
+}
+
+// ---------- GPS ----------
+function useGPS(){
+  if(!navigator.geolocation){ alert("Geolocation not supported."); return; }
+  navigator.geolocation.getCurrentPosition(
+    (pos)=>{
+      latEl.value=pos.coords.latitude.toFixed(6);
+      lonEl.value=pos.coords.longitude.toFixed(6);
+      if(Number.isFinite(pos.coords.altitude)) altEl.value=String(pos.coords.altitude.toFixed(0));
+      try{ calcDeclination(); }catch(e){ alert(e.message); }
+    },
+    (err)=>alert("GPS error: "+err.message),
+    { enableHighAccuracy:true, timeout:15000, maximumAge:30000 }
+  );
+}
+
+// ---------- Deviation table (v1.1 stable) ----------
+const headings15 = Array.from({length:24}, (_,i)=>i*15);
+function defaultDevTable(){ const t={}; headings15.forEach(h=>t[h]=null); return t; }
+
+let devTable = defaultDevTable();   // IMPORTANT: devTable exists early
+function renderDevGrid(table){
+  const grid=$("devGrid");
+  grid.innerHTML="";
+  for(const h of headings15){
+    const wrap=document.createElement("div");
+    wrap.className="cell";
+    const lab=document.createElement("label");
+    lab.textContent = `${String(h).padStart(3,"0")}° (E=+, W=−)`;
+    const inp=document.createElement("input");
+    inp.inputMode="decimal";
+    inp.placeholder = (LANG==="fr") ? "ex. +2,0" : "e.g. +2.0";
+    inp.value = (table[h]===null || table[h]===undefined) ? "" : String(table[h]);
+    inp.addEventListener("input", ()=>{
+      const v = inp.value.trim();
+      table[h] = v==="" ? null : (parseNum(v) ?? null);
+    });
+    wrap.appendChild(lab);
+    wrap.appendChild(inp);
+    grid.appendChild(wrap);
+  }
+}
+renderDevGrid(devTable);
+
+function getDeviationForMagHeading(magDeg, table){
+  const m = norm360(magDeg);
+  const lower = Math.floor(m/15)*15;
+  const upper = (lower + 15) % 360;
+  const frac = (m - lower) / 15;
+  const a = (table[lower]===null||table[lower]===undefined) ? 0 : table[lower];
+  const b = (table[upper]===null||table[upper]===undefined) ? 0 : table[upper];
+  return a + (b - a) * frac;
+}
+
+// ---------- Deviation profiles ----------
+function loadDevProfiles(){
+  try{ return JSON.parse(localStorage.getItem(LS_DEV_PROFILES)||"{}") || {}; }
+  catch{ return {}; }
+}
+function saveDevProfiles(obj){ localStorage.setItem(LS_DEV_PROFILES, JSON.stringify(obj)); }
+function getCurrentProfileKey(){ return ($("devProfileName").value.trim() || "Ship's Compass"); }
+
+function initDevProfile(){
+  const profiles=loadDevProfiles();
+  const last=localStorage.getItem(LS_DEV_LAST);
+  if(last && profiles[last]){
+    $("devProfileName").value = last;
+    $("devNotes").value = profiles[last].notes || "";
+    devTable = profiles[last].table || defaultDevTable();
+    for(const h of headings15) if(!(h in devTable)) devTable[h]=null;
+    renderDevGrid(devTable);
+  }
+}
+initDevProfile();
+
+function saveDevProfile(){
+  const profiles=loadDevProfiles();
+  const key=getCurrentProfileKey();
+  profiles[key]={ notes:$("devNotes").value.trim(), table:devTable };
+  saveDevProfiles(profiles);
+  localStorage.setItem(LS_DEV_LAST, key);
+  alert((LANG==="fr" ? "Profil enregistré : " : "Saved deviation profile: ") + key);
+}
+function loadDevProfile(){
+  const profiles=loadDevProfiles();
+  const names=Object.keys(profiles);
+  if(names.length===0){ alert(LANG==="fr" ? "Aucun profil enregistré." : "No saved deviation profiles yet."); return; }
+  const promptTxt = LANG==="fr" ? "Nom du profil à charger:" : "Enter profile name to load:";
+  const pick = prompt(promptTxt + "\n\n" + names.sort().join("\n"), localStorage.getItem(LS_DEV_LAST)||names[0]);
+  if(!pick) return;
+  if(!profiles[pick]){ alert(LANG==="fr" ? "Profil introuvable." : "Profile not found."); return; }
+  $("devProfileName").value = pick;
+  $("devNotes").value = profiles[pick].notes || "";
+  devTable = profiles[pick].table || defaultDevTable();
+  for(const h of headings15) if(!(h in devTable)) devTable[h]=null;
+  renderDevGrid(devTable);
+  localStorage.setItem(LS_DEV_LAST, pick);
+  alert((LANG==="fr" ? "Chargé : " : "Loaded: ") + pick);
+}
+function newDevTable(){
+  const msg = LANG==="fr" ? "Effacer la table de déviation ?" : "Clear the deviation table?";
+  if(!confirm(msg)) return;
+  devTable = defaultDevTable();
+  $("devNotes").value="";
+  renderDevGrid(devTable);
+}
+function exportDevProfiles(){
+  const profiles=loadDevProfiles();
+  const blob=new Blob([JSON.stringify(profiles,null,2)], {type:"application/json"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url; a.download="deviation-profiles.json";
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+function importDevProfilesFile(file){
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const obj=JSON.parse(String(r.result||""));
+      if(!obj || typeof obj!=="object") throw new Error("Bad JSON");
+      saveDevProfiles(obj);
+      alert(LANG==="fr" ? "Profils importés." : "Deviation profiles imported.");
+    }catch(e){
+      alert((LANG==="fr" ? "Échec d’importation: " : "Import failed: ") + e.message);
+    }
+  };
+  r.readAsText(file);
+}
+function fillBlanksWithZero(){
+  for(const h of headings15){
+    if(devTable[h]===null || devTable[h]===undefined) devTable[h]=0;
+  }
+  renderDevGrid(devTable);
+}
+function roundAll(){
+  for(const h of headings15){
+    if(devTable[h]!==null && devTable[h]!==undefined){
+      devTable[h]=Math.round(devTable[h]*10)/10;
+    }
+  }
+  renderDevGrid(devTable);
+}
+
+// ---------- Print deviation card ----------
+function buildPrintCard(){
+  const profile = getCurrentProfileKey();
+  const notes = $("devNotes").value.trim();
+  $("p_profile").textContent = profile;
+  $("p_notes").textContent = notes ? notes : "";
+
+  const tbody = $("p_table").querySelector("tbody");
+  tbody.innerHTML = "";
+  for(const h of headings15){
+    const v = (devTable[h]===null||devTable[h]===undefined) ? 0 : devTable[h];
+    const ew = v >= 0 ? "E" : (LANG==="fr" ? "O" : "W");
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${String(h).padStart(3,"0")}</td><td>${Math.abs(v).toFixed(1)}</td><td>${ew}</td>`;
+    tbody.appendChild(tr);
+  }
+}
+function printDeviationCard(){
+  buildPrintCard();
+  $("printCard").style.display = "block";
+  window.print();
+  setTimeout(()=>{ $("printCard").style.display="none"; }, 250);
+}
+
+// ---------- Conversions ----------
+function convertHeadings(){
+  if(currentDecl===null) calcDeclination();
+
+  const tStr=$("trueHdg").value.trim();
+  const mStr=$("magHdg").value.trim();
+  const cStr=$("compHdg").value.trim();
+
+  const haveT = tStr!=="" && parseNum(tStr)!==null;
+  const haveM = mStr!=="" && parseNum(mStr)!==null;
+  const haveC = cStr!=="" && parseNum(cStr)!==null;
+
+  if(!haveT && !haveM && !haveC){
+    convOut.textContent = (LANG==="fr") ? "Entrez au moins un cap (Vrai, Magnétique ou Compas)." : "Enter at least one heading (True, Magnetic, or Compass).";
+    return;
+  }
+
+  const decl=currentDecl;
+  const notes = $("devNotes").value.trim();
+  const profile = getCurrentProfileKey();
+
+  let lines=[];
+  let devApplied=null;
+
+  if(haveT){
+    const T=parseNum(tStr);
+    const M=norm360(T - decl);
+    const dev=getDeviationForMagHeading(M, devTable);
+    const C=norm360(M - dev);
+    devApplied=dev;
+    $("magHdg").value=M.toFixed(1);
+    $("compHdg").value=C.toFixed(1);
+    lines.push(`From True: ${T.toFixed(1)}°T → ${M.toFixed(1)}°M → ${C.toFixed(1)}°C`);
+  } else if(haveM){
+    const M=parseNum(mStr);
+    const T=norm360(M + decl);
+    const dev=getDeviationForMagHeading(M, devTable);
+    const C=norm360(M - dev);
+    devApplied=dev;
+    $("trueHdg").value=T.toFixed(1);
+    $("compHdg").value=C.toFixed(1);
+    lines.push(`From Magnetic: ${M.toFixed(1)}°M → ${T.toFixed(1)}°T → ${C.toFixed(1)}°C`);
+  } else if(haveC){
+    const C=parseNum(cStr);
+    let M=norm360(C);
+    for(let i=0;i<6;i++){
+      const dev=getDeviationForMagHeading(M, devTable);
+      M = norm360(C + dev);
+    }
+    const dev=getDeviationForMagHeading(M, devTable);
+    const T=norm360(M + decl);
+    devApplied=dev;
+    $("magHdg").value=M.toFixed(1);
+    $("trueHdg").value=T.toFixed(1);
+    lines.push(`From Compass: ${C.toFixed(1)}°C → ${M.toFixed(1)}°M → ${T.toFixed(1)}°T`);
+  }
+
+  $("devApplied").value = (devApplied===null) ? "—" : `${devApplied.toFixed(1)}° (E=+, W=−)`;
+  const noteLine = (LANG==="fr")
+    ? `Profil: <span class="mono">${profile}</span>${notes?` — ${notes}`:""}`
+    : `Deviation profile: <span class="mono">${profile}</span>${notes?` — ${notes}`:""}`;
+
+  convOut.innerHTML =
+    lines.map(s=>`<div class="mono">${s}</div>`).join("") +
+    `<div class="note" style="margin-top:8px">${noteLine}</div>`;
+}
+function swapInputs(){
+  const t=$("trueHdg").value;
+  $("trueHdg").value=$("magHdg").value;
+  $("magHdg").value=t;
+}
+function clearHeadings(){
+  $("trueHdg").value="";
+  $("magHdg").value="";
+  $("compHdg").value="";
+  $("devApplied").value="—";
+  convOut.textContent="";
+}
+
+// ---------- Model update UI ----------
+function showModelInfo(){
+  const {model, source}=loadModel();
+  const start=new Date(model.start_date), end=new Date(model.end_date);
+  $("modelInfo").innerHTML =
+    `<div><b>Source:</b> ${source}</div>` +
+    `<div><b>Name:</b> ${model.name||"—"}</div>` +
+    `<div><b>Epoch:</b> ${model.epoch}</div>` +
+    `<div><b>Valid:</b> ${start.toISOString()} → ${end.toISOString()}</div>`;
+}
+function onModelFilePicked(file){
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const obj=JSON.parse(String(r.result||""));
+      const required=["main_field_coeff_g","main_field_coeff_h","n_max","epoch","start_date","end_date"];
+      for(const k of required) if(!(k in obj)) throw new Error(`Missing field: ${k}`);
+      saveModel(obj);
+      currentDecl=null;
+      updateModelPill();
+      showModelInfo();
+      alert(LANG==="fr" ? "Modèle importé." : "Model imported and saved offline.");
+    }catch(e){
+      alert((LANG==="fr" ? "Échec d’import du modèle: " : "Model import failed: ") + e.message);
+    }
+  };
+  r.readAsText(file);
+}
+
+// ---------- Language init (SAFE order: after devTable exists) ----------
+(function initLang(){
+  const saved = localStorage.getItem(LS_LANG);
+  if(saved==="fr" || saved==="en") LANG = saved;
+  $("langSel").value = LANG;
+  applyLang();
+  renderDevGrid(devTable); // keeps grid visible + updates placeholders
+})();
+$("langSel").addEventListener("change",(e)=>{
+  LANG = (e.target.value==="fr") ? "fr" : "en";
+  localStorage.setItem(LS_LANG, LANG);
+  applyLang();
+  renderDevGrid(devTable);
+});
+
+// ---------- Wire up ----------
+$("gpsBtn").addEventListener("click", useGPS);
+$("calcBtn").addEventListener("click", ()=>{ try{ calcDeclination(); }catch(e){ alert(e.message); } });
+$("convertBtn").addEventListener("click", ()=>{ try{ convertHeadings(); }catch(e){ alert(e.message); } });
+$("swapBtn").addEventListener("click", swapInputs);
+$("clearBtn").addEventListener("click", clearHeadings);
+
+$("devSaveBtn").addEventListener("click", saveDevProfile);
+$("devLoadBtn").addEventListener("click", loadDevProfile);
+$("devNewBtn").addEventListener("click", newDevTable);
+$("devExportBtn").addEventListener("click", exportDevProfiles);
+$("devImportFile").addEventListener("change", (e)=>{ const f=e.target.files && e.target.files[0]; if(f) importDevProfilesFile(f); });
+$("fillZeroBtn").addEventListener("click", fillBlanksWithZero);
+$("roundBtn").addEventListener("click", roundAll);
+$("printDevBtn").addEventListener("click", printDeviationCard);
+
+$("showModelBtn").addEventListener("click", showModelInfo);
+$("resetModelBtn").addEventListener("click", ()=>{
+  resetModel();
+  currentDecl=null;
+  updateModelPill();
+  $("modelInfo").textContent=t("model_reset_done");
+});
+$("modelFile").addEventListener("change", (e)=>{ const f=e.target.files && e.target.files[0]; if(f) onModelFilePicked(f); });
+
+// initial model pill
+updateModelPill();
+
+// Register service worker (offline)
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js").catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
